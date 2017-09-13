@@ -1,10 +1,14 @@
-hash: df6c0189e6651e3bd3627b6f00a528b95e55eaba887d260c7c156523ea0faddd
-updated: 2017-09-13T15:23:04.590597456-03:00
+hash: ef787631d3d080cb340a89b0d970c8f80203ee724f54f6a3f7995c34f52cf19f
+updated: 2017-09-13T15:28:54.91786245-03:00
 imports:
+- name: github.com/sendgrid/rest
+  version: 80b39aaf5a30edab5bf2f99d56052abe01a0d41d
 - name: github.com/sendgrid/sendgrid-go
   version: 8caf17aa96b4a98bae8bd216878dd50ff12897b5
   subpackages:
   - helpers/mail
+- name: gopkg.in/mailgun/mailgun-go.v1
+  version: a4002e2df2e8ca2da6a6fbb4a72871b504e49f50
 testImports:
 - name: github.com/joho/godotenv
   version: 726cc8b906e3d31c70a9671c90a13716a8d3f50d

@@ -5,7 +5,9 @@ import (
 	"net/smtp"
 	"time"
 
+	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	"gopkg.in/mailgun/mailgun-go.v1"
 )
 
 // SDKConfigSengrid cfg SDKs

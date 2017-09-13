@@ -17,10 +17,8 @@ func init() {
 		log.Printf("Error loading .env file! Try get a path...")
 		log.Printf("PATH = " + getPath() + "/.env")
 		if err1 := godotenv.Load(getPath() + "/.env"); err1 != nil {
-			if err2 := godotenv.Load("../../.env"); err2 != nil {
-				log.Printf("Fail...")
-				os.Exit(1)
-			}
+			log.Printf("Fail...")
+			os.Exit(1)
 		}
 	}
 }
