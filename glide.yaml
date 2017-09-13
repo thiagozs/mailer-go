@@ -1,0 +1,9 @@
+package: github.com/thiagozs/mailer-go
+import:
+- package: github.com/sendgrid/sendgrid-go
+  version: ~3.4.1
+  subpackages:
+  - helpers/mail
+testImport:
+- package: github.com/joho/godotenv
+  version: ~1.1.0
