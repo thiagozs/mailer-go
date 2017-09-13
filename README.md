@@ -9,6 +9,11 @@ Wrapper of SDKs(SendGrid, MailGun, Gmail) Mailer
 - Glide package manager
 - Linux
 
+Just get the package.
+```sh
+go get -v github.com/thiagozs/mailer-go
+```
+
 To run the study just execute the `env.sh` file to setup the path and exports.
 ```sh
 $. ./env.sh
@@ -41,7 +46,7 @@ package main
 
 import (
 	"fmt"
-	"mailer"
+	mailer "github.com/thiagozs/mailer-go"
 	"time"
 )
 
