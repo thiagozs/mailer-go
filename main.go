@@ -1,12 +1,20 @@
 package mailer
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/smtp"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/credentials"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ses"
+
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
+
 	"gopkg.in/mailgun/mailgun-go.v1"
 )
 
@@ -37,11 +45,42 @@ type SDKConfigGmail struct {
 	ConfigEmail ConfigEmailGmail
 }
 
+// SDKConfigAWSSES cfg SDKs
+type SDKConfigAWSSES struct {
+	SecretKey   string
+	AccessKey   string
+	Region      string
+	SDKName     string
+	Delay       time.Duration
+	ConfigEmail ConfigEmailAWSSES
+}
+
+// SDKConfigSMTPSSL cfg SDKs
+type SDKConfigSMTPSSL struct {
+	User        string
+	Password    string
+	Server      string
+	Port        string
+	SDKName     string
+	Delay       time.Duration
+	ConfigEmail ConfigEmailSMTPSSL
+}
+
 // SDK wrapper of APIs
 type SDK struct {
 	Mailgun  mailgun.Mailgun
 	Sendgrid *sendgrid.Client
 	Gmail    GmailLogin
+	AWSSES   *ses.SES
+	SMTPSSL  SMTPLoginSSL
+}
+
+// SMTPLoginSSL username and password for gmail
+type SMTPLoginSSL struct {
+	User     string
+	Password string
+	Server   string
+	Port     string
 }
 
 // GmailLogin username and password for gmail
@@ -77,6 +116,24 @@ type ConfigEmailGmail struct {
 	Subject     string
 }
 
+// ConfigEmailAWSSES configuration of send.
+type ConfigEmailAWSSES struct {
+	EmailFrom        string
+	EmailTo          string
+	Subject          string
+	ContentPlainText string
+	ContentHTML      string
+}
+
+// ConfigEmailSMTPSSL configuration of send.
+type ConfigEmailSMTPSSL struct {
+	EmailFrom        string
+	EmailTo          string
+	Subject          string
+	ContentPlainText string
+	ContentHTML      string
+}
+
 // newSDKSendgrid get a SDKs
 func (cfg SDKConfigSengrid) newSDKSendgrid() *SDK {
 	return &SDK{
@@ -105,6 +162,25 @@ func (cfg SDKConfigGmail) newSDKGmail() *SDK {
 	}
 }
 
+// newSDKAWSSES get a SDKs
+func (cfg SDKConfigAWSSES) newSDKAWSSES() *SDK {
+	cred := credentials.NewStaticCredentials(cfg.AccessKey, cfg.SecretKey, "")
+	return &SDK{
+		AWSSES: ses.New(session.New(aws.NewConfig().WithRegion(cfg.Region).WithCredentials(cred))),
+	}
+}
+
+// newSDKSMTPSSL get a SDKs
+func (cfg SDKConfigSMTPSSL) newSDKSMTPSSL() *SDK {
+	return &SDK{
+		SMTPSSL: SMTPLoginSSL{
+			User:     cfg.User,
+			Password: cfg.Password,
+			Port:     cfg.Port,
+		},
+	}
+}
+
 // NewMailerSendGrid new instance of SendGrid
 func NewMailerSendGrid(apikey string) *SDKConfigSengrid {
 	return &SDKConfigSengrid{
@@ -129,6 +205,27 @@ func NewMailerGmail(user string, password string) *SDKConfigGmail {
 		User:     user,
 		Password: password,
 		SDKName:  "gmail",
+	}
+}
+
+// NewMailerAWSSES new instance of AWS
+func NewMailerAWSSES(accesskey string, secretkey string, region string) *SDKConfigAWSSES {
+	return &SDKConfigAWSSES{
+		AccessKey: accesskey,
+		SecretKey: secretkey,
+		Region:    region,
+		SDKName:   "awsses",
+	}
+}
+
+// NewMailerSMTPSSL new instace for SMTP login
+func NewMailerSMTPSSL(user string, password string, server string, port string) *SDKConfigSMTPSSL {
+	return &SDKConfigSMTPSSL{
+		User:     user,
+		Password: password,
+		Server:   server,
+		Port:     port,
+		SDKName:  "smtpssl",
 	}
 }
 
@@ -214,12 +311,23 @@ func CheckIsEmptyCfg(cfg interface{}) bool {
 	}
 
 	gm, ok3 := cfg.(*SDKConfigGmail)
-	// fmt.Printf("MailGun %t\n", ok1)
+	// fmt.Printf("Gmail %t\n", ok1)
 	if ok3 {
 		if len(gm.ConfigEmail.ContentHTML) == 0 ||
 			len(gm.ConfigEmail.EmailFrom) == 0 ||
 			len(gm.ConfigEmail.EmailTo) == 0 ||
 			len(gm.ConfigEmail.Subject) == 0 {
+			return true
+		}
+	}
+
+	smtp, ok4 := cfg.(*SDKConfigSMTPSSL)
+	// fmt.Printf("SMTPSSL %t\n", ok1)
+	if ok4 {
+		if len(smtp.ConfigEmail.ContentHTML) == 0 ||
+			len(smtp.ConfigEmail.EmailFrom) == 0 ||
+			len(smtp.ConfigEmail.EmailTo) == 0 ||
+			len(smtp.ConfigEmail.Subject) == 0 {
 			return true
 		}
 	}
@@ -276,6 +384,145 @@ func (cfg *SDKConfigGmail) SendMail() error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+
+}
+
+// SendMail sendemail
+func (cfg *SDKConfigAWSSES) SendMail() error {
+	if cfg.ConfigEmail.ContentHTML == "" {
+		cfg.ConfigEmail.ContentHTML = cfg.ConfigEmail.ContentPlainText
+	}
+
+	sdk := cfg.newSDKAWSSES()
+
+	msg := &ses.Message{
+		Subject: &ses.Content{
+			Charset: aws.String("utf-8"),
+			Data:    &cfg.ConfigEmail.Subject,
+		},
+		Body: &ses.Body{
+			Html: &ses.Content{
+				Charset: aws.String("utf-8"),
+				Data:    &cfg.ConfigEmail.ContentHTML,
+			},
+			Text: &ses.Content{
+				Charset: aws.String("utf-8"),
+				Data:    &cfg.ConfigEmail.ContentPlainText,
+			},
+		},
+	}
+
+	dest := &ses.Destination{
+		ToAddresses: aws.StringSlice([]string{cfg.ConfigEmail.EmailTo}),
+	}
+
+	_, err := sdk.AWSSES.SendEmail(&ses.SendEmailInput{
+		Source:      &cfg.ConfigEmail.EmailFrom,
+		Destination: dest,
+		Message:     msg,
+		// ReplyToAddresses: aws.StringSlice(cfg.ConfigEmail.ReplyTo),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SendMail sendemail
+func (cfg *SDKConfigSMTPSSL) SendMail() error {
+	sdk := cfg.newSDKSMTPSSL()
+
+	if CheckIsEmptyCfg(cfg) {
+		return fmt.Errorf("Empty fields on ConfigEmail")
+	}
+
+	if cfg.Delay > 0 {
+		time.Sleep(cfg.Delay)
+	}
+
+	//Default server
+	SMTPServerWithPort := fmt.Sprintf("%s:%s", cfg.Server, cfg.Port)
+	SMTPServerNoPort := cfg.Server
+
+	headerConf := make(map[string]string)
+	headerMail := make(map[string]string)
+
+	message := ""
+
+	headerConf["Content-Type"] = "text/html; charset=\"UTF-8\";"
+	headerConf["MIME-Version"] = "1.0;"
+
+	for key, value := range headerConf {
+		message += fmt.Sprintf("%s: %s\n", key, value)
+	}
+
+	headerMail["From"] = sdk.SMTPSSL.User
+	headerMail["To"] = cfg.ConfigEmail.EmailTo
+	headerMail["Subject"] = cfg.ConfigEmail.Subject
+
+	for key, value := range headerMail {
+		message += fmt.Sprintf("%s: %s\n", key, value)
+	}
+
+	message += "\n" + cfg.ConfigEmail.ContentHTML
+
+	auth := smtp.PlainAuth("", sdk.SMTPSSL.User, sdk.SMTPSSL.Password, SMTPServerNoPort)
+
+	// TLS config
+	tlsconfig := &tls.Config{
+		InsecureSkipVerify: true,
+		ServerName:         SMTPServerNoPort,
+	}
+
+	// Conn
+	conn, err := tls.Dial("tcp", SMTPServerWithPort, tlsconfig)
+	if err != nil {
+		return err
+	}
+
+	// New Client smtp ssl
+	c, err := smtp.NewClient(conn, SMTPServerNoPort)
+	if err != nil {
+		return err
+	}
+
+	// Auth
+	if err = c.Auth(auth); err != nil {
+		return err
+	}
+
+	// To && From
+	if err = c.Mail(cfg.User); err != nil {
+		return err
+	}
+
+	if err = c.Rcpt(cfg.ConfigEmail.EmailTo); err != nil {
+		return err
+	}
+
+	// Data
+	w, err := c.Data()
+	if err != nil {
+		return err
+	}
+
+	// Write messsage
+	_, err = w.Write([]byte(message))
+	if err != nil {
+		return err
+	}
+
+	// Close Write
+	err = w.Close()
+	if err != nil {
+		return err
+	}
+
+	c.Quit()
 
 	return nil
 
