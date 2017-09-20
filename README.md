@@ -1,4 +1,4 @@
-Wrapper of SDKs(SendGrid, MailGun, Gmail) Mailer
+Wrapper of SDKs(SendGrid, MailGun, Gmail, AWS SES, SSL SMTP) Mailer
 ---
 [ ![Codeship Status for thiagozs/sendmail-poc-go](https://app.codeship.com/projects/ba8d82b0-7945-0135-b5d7-62a7bc934352/status?branch=master)](https://app.codeship.com/projects/244971) [![Go Report Card](https://goreportcard.com/badge/github.com/thiagozs/sendmail-poc-go)](https://goreportcard.com/report/github.com/thiagozs/sendmail-poc-go)
 
