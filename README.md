@@ -6,6 +6,8 @@ Wrapper of SDKs(SendGrid, MailGun, Gmail) Mailer
 - SDK Sendgrid
 - SDK Mailgun
 - SDK Gmail
+- SDK AWS SES
+- Simple SSL SMTP
 - Glide package manager
 - Linux
 
@@ -36,6 +38,10 @@ EMAILFROM=...
 EMAILFROMNAME=...
 EMAILTO=...
 EMAILTONAME=...
+SMTPSSL_USER=...
+SMTPSSL_PASSWD=...
+SMTPSSL_SERVER=...
+SMTPSSL_PORT=...
 ```
 
 The project is open for any upgrade / commit, submit your proof of concept (POC).
@@ -121,6 +127,8 @@ ToDos
 - [x] Wrapper Sendgrid
 - [x] Wrapper Mailgun
 - [x] Wrapper Gmail
+- [x] Wrapper AWS SES
+- [x] Simple SSL SMTP
 - [X] Tests
 
 Autors
